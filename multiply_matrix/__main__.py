@@ -1,10 +1,3 @@
-from .operation import slave_operation, master_operation
+from .operation import multiply_with_transpose
 
-from mpi4py import MPI
-
-rank = MPI.COMM_WORLD.Get_rank()
-
-if rank > 0:
-    slave_operation()
-else:
-    master_operation()
+multiply_with_transpose()

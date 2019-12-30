@@ -33,47 +33,32 @@ def save_matrix(matrix):
             file.write(f'{output}\n')
 
 
-def master_operation():
+def multiply_with_transpose():
     """
     Split the initial matrix into sub-matrices and send them for calculation to workers
     """
-    workers = MPI.COMM_WORLD.Get_size() - 1
-    matrix = read_matrix()
-    transpose_matrix = np.ndarray.transpose(matrix)
     start_time = time.time()
 
-    array_chunks = [chunk for chunk in np.array_split(matrix, workers) if len(chunk)]
-    pid = 1
-
-    for chunk in np.nditer(array_chunks):
-        MPI.COMM_WORLD.send(chunk, dest=pid, tag=1)
-        MPI.COMM_WORLD.send(transpose_matrix, dest=pid, tag=2)
-        pid = pid + 1
-
-    result_matrix = np.empty((0, matrix.shape[1]))
-
-    pid = 1
-    for n in range(len(array_chunks)):
-        chunk = MPI.COMM_WORLD.recv(source=pid, tag=pid)
-        result_matrix = np.append(result_matrix, [chunk], axis=0)
-        pid = pid + 1
-
-    end_time = time.time()
-
-    save_matrix(result_matrix)
-
-    print(f'Time taken in seconds {end_time - start_time}')
-
-
-def slave_operation():
-    """
-    Perform matrix multiplication on received matrices
-    """
-
-    x = MPI.COMM_WORLD.recv(source=0, tag=1)
-    y = MPI.COMM_WORLD.recv(source=0, tag=2)
-
-    result = np.matmul(y, x)
-
     rank = MPI.COMM_WORLD.Get_rank()
-    MPI.COMM_WORLD.send(result, dest=0, tag=rank)
+    workers = MPI.COMM_WORLD.Get_size()
+    sub_matrix = []
+    if rank == 0:
+        matrix = read_matrix()
+        sub_matrix = np.array_split(matrix, workers, 1)
+    MPI.COMM_WORLD.barrier()
+    sub_matrix = MPI.COMM_WORLD.scatter(sub_matrix, root=0)
+    transpose_part = np.ndarray.transpose(sub_matrix)
+
+    part_list = MPI.COMM_WORLD.allgather(transpose_part)
+    MPI.COMM_WORLD.barrier()
+    transpose_matrix = np.row_stack(part_list)
+
+    multipy_matrix = np.matmul(transpose_matrix, sub_matrix)
+    result_matrix = MPI.COMM_WORLD.gather(multipy_matrix, root=0)
+
+    if rank == 0:
+        result_matrix = np.column_stack(result_matrix)
+        save_matrix(result_matrix)
+
+        end_time = time.time()
+        print(f'Time taken in seconds {end_time - start_time}')
