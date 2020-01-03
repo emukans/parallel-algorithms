@@ -33,17 +33,31 @@ def save_matrix(matrix):
             file.write(f'{output}\n')
 
 
+def serial_multiply_with_transpose():
+    """
+    Serial matrix multiplication
+    """
+    matrix = read_matrix()
+    start_time = time.time()
+    transposed_matrix = np.transpose(matrix)
+
+    result_matrix = np.matmul(transposed_matrix, matrix)
+
+    end_time = time.time()
+    print(f'Time taken in seconds {end_time - start_time}')
+    save_matrix(result_matrix)
+
+
 def multiply_with_transpose():
     """
     Split the initial matrix into sub-matrices and send them for calculation to workers
     """
-    start_time = time.time()
-
     rank = MPI.COMM_WORLD.Get_rank()
     workers = MPI.COMM_WORLD.Get_size()
     sub_matrix = []
     if rank == 0:
         matrix = read_matrix()
+        start_time = time.time()
         sub_matrix = np.array_split(matrix, workers, 1)
     MPI.COMM_WORLD.barrier()
     sub_matrix = MPI.COMM_WORLD.scatter(sub_matrix, root=0)
@@ -58,7 +72,6 @@ def multiply_with_transpose():
 
     if rank == 0:
         result_matrix = np.column_stack(result_matrix)
-        save_matrix(result_matrix)
-
         end_time = time.time()
         print(f'Time taken in seconds {end_time - start_time}')
+        save_matrix(result_matrix)
