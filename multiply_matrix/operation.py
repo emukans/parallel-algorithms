@@ -60,11 +60,19 @@ def multiply_with_transpose():
         start_time = time.time()
         sub_matrix = np.array_split(matrix, workers, 1)
     MPI.COMM_WORLD.barrier()
+    if rank == 0:
+        print(f'Time taken in seconds {time.time() - start_time}')
     sub_matrix = MPI.COMM_WORLD.scatter(sub_matrix, root=0)
+    if rank == 0:
+        print(f'Time taken in seconds {time.time() - start_time}')
     transpose_part = np.ndarray.transpose(sub_matrix)
+    if rank == 0:
+        print(f'Time taken in seconds {time.time() - start_time}')
 
     part_list = MPI.COMM_WORLD.allgather(transpose_part)
     MPI.COMM_WORLD.barrier()
+    if rank == 0:
+        print(f'Time taken in seconds {time.time() - start_time}')
     transpose_matrix = np.row_stack(part_list)
 
     multipy_matrix = np.matmul(transpose_matrix, sub_matrix)
