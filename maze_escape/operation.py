@@ -1,4 +1,6 @@
 import os
+import time
+
 import numpy as np
 from mpi4py import MPI
 
@@ -35,12 +37,91 @@ def save_result(result):
             file.write('-1\n')
 
 
-def master_operation():
+def breadth_first_search_escape():
+    """
+    Implementation of Breadth first search for maze escape
+    """
+    matrix = read_matrix()
+    start_time = time.time()
+    result = []
+    goal = (len(matrix) - 1, len(matrix[-1]) - 1)
+    path_list = [[(0, 0)]]
+    while True:
+        path_list = bfs_iteration(goal, matrix, path_list)
+        if len(path_list) == 1 and path_list[0][-1] == goal:
+            result = path_list[0]
+            break
+
+        if not len(path_list):
+            break
+
+    result = [(col, row) for (row, col) in result] if len(result) else []
+
+    print(f'Time taken in seconds {time.time() - start_time}')
+    save_result(result)
+
+
+def bfs_iteration(goal, matrix, path_list):
+    candidate = []
+    for path in path_list:
+        last_point = path[-1]
+        if len(matrix) > last_point[0] + 1:
+            if len(matrix[last_point[0] + 1]) > last_point[1] + 1 and not matrix[last_point[0] + 1][last_point[1] + 1] and (last_point[0] + 1, last_point[1] + 1) not in path:
+                step = (last_point[0] + 1, last_point[1] + 1)
+                new_path = path + [step]
+                if step == goal:
+                    return [new_path]
+                candidate.append(new_path)
+
+            if last_point[1] - 1 >= 0 and len(matrix[last_point[0] + 1]) > last_point[1] + 1 and not matrix[last_point[0] + 1][last_point[1] - 1] and (
+            last_point[0] + 1, last_point[1] - 1) not in path:
+                step = (last_point[0] + 1, last_point[1] - 1)
+                new_path = path + [step]
+                if step == goal:
+                    return [new_path]
+                candidate.append(new_path)
+
+        if len(matrix) > last_point[0] - 1 >= 0:
+            if len(matrix[last_point[0] - 1]) > last_point[1] - 1 and not matrix[last_point[0] - 1][last_point[1] + 1] and (last_point[0] - 1, last_point[1] + 1) not in path:
+                step = (last_point[0] - 1, last_point[1] + 1)
+                new_path = path + [step]
+                if step == goal:
+                    return [new_path]
+                candidate.append(new_path)
+
+            if 0 <= last_point[1] - 1 < len(matrix[last_point[0] - 1]) and not matrix[last_point[0] - 1][last_point[1] - 1] and (last_point[0] - 1, last_point[1] - 1) not in path:
+                step = (last_point[0] - 1, last_point[1] - 1)
+                new_path = path + [step]
+                if step == goal:
+                    return [new_path]
+                candidate.append(new_path)
+
+    return candidate
+
+
+def parallel_escape():
+    rank = MPI.COMM_WORLD.Get_rank()
+    matrix = []
+    if rank == 0:
+        matrix = read_matrix()
+        start_time = time.time()
+
+    matrix = MPI.COMM_WORLD.bcast(matrix, root=0)
+
+    if rank > 0:
+        slave_operation(matrix)
+    else:
+        result = master_operation(matrix)
+        print(f'Time taken in seconds {time.time() - start_time}')
+        save_result(result)
+
+
+def master_operation(matrix):
     """
     Split the initial matrix into tasks and distribute them among slave operations
     """
     workers = MPI.COMM_WORLD.Get_size()
-    matrix = read_matrix()
+
     accumulator = []
     task_queue = []
     if not matrix[0][0]:
@@ -54,7 +135,7 @@ def master_operation():
                 start = task_queue.pop(0)
 
                 sent_workers.append(pid)
-                MPI.COMM_WORLD.send(dict(matrix=matrix, start=start, status='process'), dest=pid, tag=1)
+                MPI.COMM_WORLD.send(dict(start=start, status='process'), dest=pid, tag=1)
 
         if not len(task_queue) and not len(sent_workers):
             break
@@ -72,12 +153,10 @@ def master_operation():
 
     accumulator.sort(key=lambda sequence: len(sequence))
 
-    result = [(col, row) for (row, col) in accumulator[0]] if len(accumulator) else []
-
-    save_result(result)
+    return [(col, row) for (row, col) in accumulator[0]] if len(accumulator) else []
 
 
-def slave_operation():
+def slave_operation(matrix):
     """
     Try to find all possible paths in a maze
     """
@@ -87,7 +166,6 @@ def slave_operation():
         if data['status'] == 'terminate':
             return
 
-        matrix = data['matrix']
         task = data['start']
 
         result = find_path(matrix, task)

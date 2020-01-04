@@ -1,10 +1,10 @@
-from .operation import slave_operation, master_operation
-
 from mpi4py import MPI
 
-rank = MPI.COMM_WORLD.Get_rank()
+from maze_escape.operation import breadth_first_search_escape, parallel_escape
 
-if rank > 0:
-    slave_operation()
+workers = MPI.COMM_WORLD.Get_size()
+
+if workers == 1:
+    breadth_first_search_escape()
 else:
-    master_operation()
+    parallel_escape()
