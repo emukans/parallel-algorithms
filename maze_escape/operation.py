@@ -73,16 +73,15 @@ def bfs_iteration(goal, matrix, path_list):
                     return [new_path]
                 candidate.append(new_path)
 
-            if last_point[1] - 1 >= 0 and len(matrix[last_point[0] + 1]) > last_point[1] + 1 and not matrix[last_point[0] + 1][last_point[1] - 1] and (
-            last_point[0] + 1, last_point[1] - 1) not in path:
+            if last_point[1] - 1 >= 0 and len(matrix[last_point[0] + 1]) > last_point[1] + 1 and not matrix[last_point[0] + 1][last_point[1] - 1] and (last_point[0] + 1, last_point[1] - 1) not in path:
                 step = (last_point[0] + 1, last_point[1] - 1)
                 new_path = path + [step]
                 if step == goal:
                     return [new_path]
                 candidate.append(new_path)
 
-        if len(matrix) > last_point[0] - 1 >= 0:
-            if len(matrix[last_point[0] - 1]) > last_point[1] - 1 and not matrix[last_point[0] - 1][last_point[1] + 1] and (last_point[0] - 1, last_point[1] + 1) not in path:
+        if last_point[0] - 1 >= 0:
+            if len(matrix[last_point[0] - 1]) > last_point[1] + 1 and not matrix[last_point[0] - 1][last_point[1] + 1] and (last_point[0] - 1, last_point[1] + 1) not in path:
                 step = (last_point[0] - 1, last_point[1] + 1)
                 new_path = path + [step]
                 if step == goal:
@@ -194,8 +193,8 @@ def find_path(matrix, task):
             if last_point[1] - 1 >= 0 and len(matrix[last_point[0] + 1]) > last_point[1] + 1 and not matrix[last_point[0] + 1][last_point[1] - 1] and (last_point[0] + 1, last_point[1] - 1) not in task:
                 candidate.append((last_point[0] + 1, last_point[1] - 1))
 
-        if len(matrix) > last_point[0] - 1 >= 0:
-            if len(matrix[last_point[0] - 1]) > last_point[1] - 1 and not matrix[last_point[0] - 1][last_point[1] + 1] and (last_point[0] - 1, last_point[1] + 1) not in task:
+        if last_point[0] - 1 >= 0:
+            if len(matrix[last_point[0] - 1]) > last_point[1] + 1 and not matrix[last_point[0] - 1][last_point[1] + 1] and (last_point[0] - 1, last_point[1] + 1) not in task:
                 candidate.append((last_point[0] - 1, last_point[1] + 1))
 
             if 0 <= last_point[1] - 1 < len(matrix[last_point[0] - 1]) and not matrix[last_point[0] - 1][last_point[1] - 1] and (last_point[0] - 1, last_point[1] - 1) not in task:
