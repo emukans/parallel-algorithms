@@ -141,9 +141,12 @@ def master_operation(matrix):
 
         for pid in sent_workers:
             data = MPI.COMM_WORLD.recv(source=pid, tag=pid)
+            if len(accumulator):
+                continue
 
             if len(data['result']) == 1:
                 accumulator.append(data['result'][0])
+                task_queue = []
             elif len(data['result']) > 1:
                 task_queue += data['result']
 
@@ -207,8 +210,7 @@ def find_path(matrix, task):
         if len(candidate) == 1:
             task.append(candidate.pop())
             if task[-1] == goal:
-                result = [task]
-                break
+                return [task]
 
         if len(candidate) > 1:
             for item in candidate:
